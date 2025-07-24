@@ -1,5 +1,9 @@
 project:
-  title: "r-environment-slides"
+  type: website
 
-editor: visual
-
+website:
+  title: "R Environment Explained"
+  navbar:
+    left:
+      - href: r-environment-slides.qmd  # 把这里换成你主文件的名字
+        text: Home

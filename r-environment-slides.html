@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lihong Xiao @ COE-SDR">
+<meta name="dcterms.date" content="2025-07-24">
+<meta name="description" content="A comprehensive guide to understanding environments in R, from basic concepts to advanced scoping rules.">
+
+<title>R Environment Explained</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="r-environment-slides_files/libs/clipboard/clipboard.min.js"></script>
+<script src="r-environment-slides_files/libs/quarto-html/quarto.js"></script>
+<script src="r-environment-slides_files/libs/quarto-html/popper.min.js"></script>
+<script src="r-environment-slides_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="r-environment-slides_files/libs/quarto-html/anchor.min.js"></script>
+<link href="r-environment-slides_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="r-environment-slides_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="r-environment-slides_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="r-environment-slides_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="r-environment-slides_files/libs/bootstrap/bootstrap-56894bf7a8bd427fca3b47fe3b960637.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#how-r-to-find-objects" id="toc-how-r-to-find-objects" class="nav-link active" data-scroll-target="#how-r-to-find-objects">How R to Find Objects</a>
+  <ul class="collapse">
+  <li><a href="#environments-basic" id="toc-environments-basic" class="nav-link" data-scroll-target="#environments-basic">Environments basic</a></li>
+  <li><a href="#comparison-how-sas-finds-macro-variables" id="toc-comparison-how-sas-finds-macro-variables" class="nav-link" data-scroll-target="#comparison-how-sas-finds-macro-variables">Comparison: How SAS Finds Macro Variables</a></li>
+  <li><a href="#how-sas-finds-macro-variables-flowchart" id="toc-how-sas-finds-macro-variables-flowchart" class="nav-link" data-scroll-target="#how-sas-finds-macro-variables-flowchart">How SAS Finds Macro Variables (Flowchart)</a></li>
+  <li><a href="#comparison-r-environment-vs.-sas-macro-scope" id="toc-comparison-r-environment-vs.-sas-macro-scope" class="nav-link" data-scroll-target="#comparison-r-environment-vs.-sas-macro-scope">Comparison: R Environment vs.&nbsp;SAS Macro Scope</a></li>
+  <li><a href="#thinking-about-the-process" id="toc-thinking-about-the-process" class="nav-link" data-scroll-target="#thinking-about-the-process">Thinking about the Process</a></li>
+  <li><a href="#how-r-finds-objects-chains-of-linked-environments" id="toc-how-r-finds-objects-chains-of-linked-environments" class="nav-link" data-scroll-target="#how-r-finds-objects-chains-of-linked-environments">How R Finds Objects: Chains of Linked Environments</a></li>
+  <li><a href="#r-environment-scope-a-summary" id="toc-r-environment-scope-a-summary" class="nav-link" data-scroll-target="#r-environment-scope-a-summary">R Environment Scope: A Summary</a></li>
+  <li><a href="#scoping-rules-lexical-vs.-dynamic" id="toc-scoping-rules-lexical-vs.-dynamic" class="nav-link" data-scroll-target="#scoping-rules-lexical-vs.-dynamic">Scoping Rules: Lexical vs.&nbsp;Dynamic</a></li>
+  <li><a href="#simply-summary" id="toc-simply-summary" class="nav-link" data-scroll-target="#simply-summary">Simply summary:</a></li>
+  </ul></li>
+  <li><a href="#function-environments" id="toc-function-environments" class="nav-link" data-scroll-target="#function-environments">Function Environments</a>
+  <ul class="collapse">
+  <li><a href="#key-types-of-function-environments" id="toc-key-types-of-function-environments" class="nav-link" data-scroll-target="#key-types-of-function-environments">Key Types of Function Environments</a></li>
+  <li><a href="#definition-environment-enclosingdefinition-environment" id="toc-definition-environment-enclosingdefinition-environment" class="nav-link" data-scroll-target="#definition-environment-enclosingdefinition-environment">Definition Environment (Enclosing/Definition Environment)</a></li>
+  <li><a href="#execution-environment" id="toc-execution-environment" class="nav-link" data-scroll-target="#execution-environment">Execution Environment</a></li>
+  <li><a href="#calling-environment" id="toc-calling-environment" class="nav-link" data-scroll-target="#calling-environment">Calling Environment</a></li>
+  </ul></li>
+  <li><a href="#lexical-scoping-in-action-standard-evaluation" id="toc-lexical-scoping-in-action-standard-evaluation" class="nav-link" data-scroll-target="#lexical-scoping-in-action-standard-evaluation">Lexical Scoping in Action (Standard Evaluation)</a>
+  <ul class="collapse">
+  <li><a href="#core-rules" id="toc-core-rules" class="nav-link" data-scroll-target="#core-rules">Core Rules</a></li>
+  <li><a href="#for-top-level-interactive-commands-the-search-path" id="toc-for-top-level-interactive-commands-the-search-path" class="nav-link" data-scroll-target="#for-top-level-interactive-commands-the-search-path">For Top-Level Interactive Commands (The <code>search()</code> path)</a></li>
+  <li><a href="#for-names-referenced-inside-a-function-the-lexical-path" id="toc-for-names-referenced-inside-a-function-the-lexical-path" class="nav-link" data-scroll-target="#for-names-referenced-inside-a-function-the-lexical-path">For Names Referenced Inside a Function (The Lexical Path)</a></li>
+  <li><a href="#masking-the-first-find-wins" id="toc-masking-the-first-find-wins" class="nav-link" data-scroll-target="#masking-the-first-find-wins">“Masking”: The First Find Wins</a></li>
+  <li><a href="#the-inherits-parameter-fine-grained-control" id="toc-the-inherits-parameter-fine-grained-control" class="nav-link" data-scroll-target="#the-inherits-parameter-fine-grained-control">The <code>inherits</code> Parameter: Fine-Grained Control</a></li>
+  <li><a href="#the-super-assignment-operator--" id="toc-the-super-assignment-operator--" class="nav-link" data-scroll-target="#the-super-assignment-operator--">The Super Assignment Operator: <code>&lt;&lt;-</code></a></li>
+  </ul></li>
+  <li><a href="#dynamic-scoping-and-non-standard-evaluation" id="toc-dynamic-scoping-and-non-standard-evaluation" class="nav-link" data-scroll-target="#dynamic-scoping-and-non-standard-evaluation">Dynamic Scoping (and Non-Standard Evaluation)</a>
+  <ul class="collapse">
+  <li><a href="#the-essence-of-nse" id="toc-the-essence-of-nse" class="nav-link" data-scroll-target="#the-essence-of-nse">The Essence of NSE</a></li>
+  <li><a href="#comparison-lexical-vs.-dynamic-scoping" id="toc-comparison-lexical-vs.-dynamic-scoping" class="nav-link" data-scroll-target="#comparison-lexical-vs.-dynamic-scoping">Comparison: Lexical vs.&nbsp;Dynamic Scoping</a></li>
+  <li><a href="#why-non-standard-evaluation-nse" id="toc-why-non-standard-evaluation-nse" class="nav-link" data-scroll-target="#why-non-standard-evaluation-nse">Why Non-Standard Evaluation (NSE)?</a></li>
+  </ul></li>
+  <li><a href="#ewise-r-environment" id="toc-ewise-r-environment" class="nav-link" data-scroll-target="#ewise-r-environment">eWise-R Environment</a></li>
+  <li><a href="#homework-and-thinking-points" id="toc-homework-and-thinking-points" class="nav-link" data-scroll-target="#homework-and-thinking-points">Homework and Thinking Points</a>
+  <ul class="collapse">
+  <li><a href="#how-do-functions-find-global-objects" id="toc-how-do-functions-find-global-objects" class="nav-link" data-scroll-target="#how-do-functions-find-global-objects">How do functions find global objects?</a></li>
+  <li><a href="#re-implementing-with-in-base-r" id="toc-re-implementing-with-in-base-r" class="nav-link" data-scroll-target="#re-implementing-with-in-base-r">Re-implementing <code>with()</code> in Base R</a></li>
+  <li><a href="#updating-a-standard-project-function" id="toc-updating-a-standard-project-function" class="nav-link" data-scroll-target="#updating-a-standard-project-function">Updating a Standard Project Function</a></li>
+  <li><a href="#implementing-dynamic-scoping-in-r" id="toc-implementing-dynamic-scoping-in-r" class="nav-link" data-scroll-target="#implementing-dynamic-scoping-in-r">Implementing Dynamic Scoping in R</a></li>
+  <li><a href="#understanding-tidy-evaluation-errors" id="toc-understanding-tidy-evaluation-errors" class="nav-link" data-scroll-target="#understanding-tidy-evaluation-errors">Understanding Tidy Evaluation Errors</a></li>
+  <li><a href="#learning" id="toc-learning" class="nav-link" data-scroll-target="#learning">Learning</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">R Environment Explained</h1>
+</div>
+
+<div>
+  <div class="description">
+    A comprehensive guide to understanding environments in R, from basic concepts to advanced scoping rules.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Lihong Xiao @ COE-SDR </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">July 24, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- ::: {#my-toc-page} -->
+<!-- ## Contents -->
+<!-- -   [How R to Find Objects](#how-r-to-find-objects) -->
+<!-- -   [Function Environments](#function-environments) -->
+<!-- -   [Lexical Scoping in Action](#lexical-scoping-in-action) -->
+<!-- -   [Dynamic Scoping](#dynamic-scoping) -->
+<!-- -   [eWise-R Environment](#ewise-r-environment) -->
+<!-- -   [Comparison: How SAS Finds Macro Variables](#comparison-how-sas-finds-macro-variables) -->
+<!-- ::: -->
+<!-- <div> -->
+<!-- </div> -->
+<section id="how-r-to-find-objects" class="level2">
+<h2 class="anchored" data-anchor-id="how-r-to-find-objects">How R to Find Objects</h2>
+<section id="environments-basic" class="level3">
+<h3 class="anchored" data-anchor-id="environments-basic">Environments basic</h3>
+<ul>
+<li><strong>What is an Environment?</strong>
+<ul>
+<li><strong>A Container</strong>: It holds R objects, like variables (<code>x &lt;- 10</code>) and functions (<code>my_func &lt;- function(...) {...}</code>). Each object has a unique name within that environment.</li>
+<li><strong>A Pointer to a Parent</strong>: Crucially, every environment has a parent environment. This “parent” pointer is what creates the chain. There is only one exception: the <code>R_EmptyEnv</code>, which has no parent and acts as the end of every chain.</li>
+</ul></li>
+<li><strong>Key Concepts of an Environment</strong>
+<ul>
+<li><strong>Name-Object Bindings</strong>: Every name must be unique and not ordered.</li>
+<li><strong>Reference Semantics</strong>: Environments are not copied when modified.</li>
+<li><strong>Parent Environment (Hierarchy)</strong></li>
+</ul></li>
+</ul>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>For creating an environment</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>env_01 <span class="ot">&lt;-</span> <span class="fu">new.env</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>env_01<span class="sc">$</span>var_01 <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>env_01<span class="sc">$</span>var_02 <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>env_01<span class="sc">$</span>var_03 <span class="ot">&lt;-</span> <span class="st">"TRUE"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(env_01<span class="sc">$</span>var_01)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>env_02<span class="ot">&lt;-</span>env_01</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>env_02</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>env_02<span class="sc">$</span>var_03 <span class="ot">&lt;-</span> <span class="st">"FALSE"</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>env_01<span class="sc">$</span>var_03 </span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>env_01[[<span class="st">"var_03"</span>]]</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"var_03"</span>, <span class="at">envir =</span> env_01)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"var_04"</span>, <span class="at">envir =</span> env_01)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="fu">c</span>(<span class="st">"var_01"</span>, <span class="st">"var_02"</span>), <span class="at">envir =</span> env_01)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">mget</span>(<span class="fu">c</span>(<span class="st">"var_04"</span>, <span class="st">"var_03"</span>,<span class="st">"var_05"</span>), <span class="at">envir =</span> env_01,<span class="at">ifnotfound =</span> <span class="cn">NA</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">get0</span>(<span class="st">"var_04"</span>, <span class="at">envir =</span> env_01, <span class="at">inherits =</span> <span class="cn">TRUE</span>, <span class="at">ifnotfound =</span> <span class="cn">NULL</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">exists</span>(<span class="st">"var_04"</span>, <span class="at">envir =</span> env_01, <span class="at">inherits =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span>(<span class="at">envir =</span> env_01)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="fu">mget</span>(<span class="fu">ls</span>(<span class="at">envir =</span> env_01), <span class="at">envir =</span> env_01)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>test_func <span class="ot">&lt;-</span> <span class="cf">function</span>(){</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ls</span>()</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func</span>()</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(env_01)</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(<span class="fu">parent.env</span>(env_01))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="comparison-how-sas-finds-macro-variables" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-how-sas-finds-macro-variables">Comparison: How SAS Finds Macro Variables</h3>
+<pre class="sas"><code>
+%let g_var = Global;
+%macro outer_macro;
+  %local o_var;
+  %let o_var = Outer;
+  %macro inner_macro;
+    %local i_var;
+    %let i_var = Inner;
+    %put --- Inside inner_macro ---;
+    %put i_var = &amp;i_var;
+    %put o_var = &amp;o_var;
+    %put g_var = &amp;g_var;
+  %mend inner_macro;
+  %inner_macro;
+%mend outer_macro;
+%outer_macro;</code></pre>
+</section>
+<section id="how-sas-finds-macro-variables-flowchart" class="level3">
+<h3 class="anchored" data-anchor-id="how-sas-finds-macro-variables-flowchart">How SAS Finds Macro Variables (Flowchart)</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sas-macro-flowchart.png" class="img-fluid figure-img" style="width:80.0%"></p>
+<figcaption>Flowchart illustrating the SAS macro variable resolution process.</figcaption>
+</figure>
+</div>
+</section>
+<section id="comparison-r-environment-vs.-sas-macro-scope" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-r-environment-vs.-sas-macro-scope">Comparison: R Environment vs.&nbsp;SAS Macro Scope</h3>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<section id="r-environment" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<h4 class="anchored" data-anchor-id="r-environment">R Environment</h4>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 42%">
+<col style="width: 57%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Features</th>
+<th style="text-align: left;">Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Basis</strong></td>
+<td style="text-align: left;">Lexical Scoping</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Lookup Rules</strong></td>
+<td style="text-align: left;">Static (based on function definition)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Local Variable Lifecycle</strong></td>
+<td style="text-align: left;">Tied to the function’s environment</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Core Mechanism</strong></td>
+<td style="text-align: left;">1. Check self -&gt; 2. Check parent envs</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sas-macro-scope" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<h4 class="anchored" data-anchor-id="sas-macro-scope">SAS Macro Scope</h4>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Features</th>
+<th style="text-align: left;">Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Basis</strong></td>
+<td style="text-align: left;">Global/Local Symbol Table</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Lookup Rules</strong></td>
+<td style="text-align: left;">Dynamic (based on call chain)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Local Variable Lifecycle</strong></td>
+<td style="text-align: left;">Bound to a single macro execution</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Core Mechanism</strong></td>
+<td style="text-align: left;">1. Check self -&gt; 2. Check caller -&gt; 3. Check global</td>
+</tr>
+</tbody>
+</table>
+</section>
+</div>
+</div>
+</section>
+<section id="thinking-about-the-process" class="level3">
+<h3 class="anchored" data-anchor-id="thinking-about-the-process">Thinking about the Process</h3>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<section id="key-variables" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="key-variables">Key Variables</h4>
+<ul>
+<li><code>xpt_path</code> = SDD</li>
+<li><code>variable_metadata</code> = <code>get0("pmetsdtm.variable")</code></li>
+</ul>
+</section>
+<section id="code-context" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="code-context">Code Context</h4>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sdd-code-snippet.png" class="img-fluid figure-img"></p>
+<figcaption>A code snippet showing variable metadata being used in a function.</figcaption>
+</figure>
+</div>
+</section>
+</div>
+</div>
+</section>
+<section id="how-r-finds-objects-chains-of-linked-environments" class="level3">
+<h3 class="anchored" data-anchor-id="how-r-finds-objects-chains-of-linked-environments">How R Finds Objects: Chains of Linked Environments</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="r-env-chain.png" class="img-fluid figure-img" style="width:70.0%"></p>
+<figcaption>A flowchart showing the chain of linked environments in R, from the Global Environment down to the Empty Environment.</figcaption>
+</figure>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Chains of Linked Environments</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">search</span>()</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>(sd)))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(<span class="fu">parent.env</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>(sd))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="r-environment-scope-a-summary" class="level3">
+<h3 class="anchored" data-anchor-id="r-environment-scope-a-summary">R Environment Scope: A Summary</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Features</th>
+<th style="text-align: left;">R Environment Scope Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Basis</strong></td>
+<td style="text-align: left;">Chains of Linked Environments</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Lookup Rules</strong></td>
+<td style="text-align: left;"><strong>Lexical</strong> (Based on function <strong>definition</strong> environment)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Local Variable Lifecycle</strong></td>
+<td style="text-align: left;">Bound to a single <strong>function call</strong> (Execution Environment)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Core Mechanism</strong></td>
+<td style="text-align: left;">1. Check current (execution) -&gt; 2. Check enclosing (definition) -&gt; 3. Follow parent chain to global, to search path, to <code>EmptyEnv</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="scoping-rules-lexical-vs.-dynamic" class="level3">
+<h3 class="anchored" data-anchor-id="scoping-rules-lexical-vs.-dynamic">Scoping Rules: Lexical vs.&nbsp;Dynamic</h3>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<section id="r-is-lexical-scoping" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="r-is-lexical-scoping">R is Lexical Scoping</h4>
+<ul>
+<li><p><strong>Core Idea</strong>: When a variable is defined within a function, the <strong>“birthplace”</strong> of the function takes precedence over the “call location” when determining its scope.</p></li>
+<li><p><strong>Mechanism</strong>: When a function needs to search for a variable during execution, it first looks in its own execution environment. If not found, it goes to its parent environment (the environment where it was <strong>defined</strong>), and then continues upwards along the chain of parent environments until the global environment and search path are reached.</p></li>
+<li><p><strong>Advantages/Disadvantages</strong>:</p>
+<ul>
+<li><strong>Advantages</strong>: Results are <strong>stable and predictable</strong>. A function’s behavior is independent of different calling contexts, which makes code easier to reason about.</li>
+<li><strong>Disadvantages</strong>: <strong>not flexible</strong></li>
+</ul></li>
+</ul>
+</section>
+<section id="sas-macro-is-dynamic-scoping" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="sas-macro-is-dynamic-scoping">SAS Macro is Dynamic Scoping</h4>
+<ul>
+<li><p><strong>Core Idea</strong>: When a variable is defined within a macro, its <strong>“calling context”</strong> is crucial for determining its scope.</p></li>
+<li><p><strong>Mechanism</strong>: When a macro needs to search for a variable during execution, it first looks in its own local symbol table. If not found, it goes to the local symbol table of its <strong>calling environment</strong>, then follows the call chain, and finally searches the global symbol table.</p></li>
+<li><p><strong>Advantages/Disadvantages</strong>:</p>
+<ul>
+<li><strong>Advantages</strong>: This method is very <strong>flexible</strong>; you can change the behavior of the macro by manipulating the calling environment.</li>
+<li><strong>Disadvantages</strong>: However, it also brings risks; the macro’s behavior can have unexpected side effects due to different calling contexts, and the predictability of the code is lower.</li>
+</ul></li>
+</ul>
+</section>
+</div>
+</div>
+</section>
+<section id="simply-summary" class="level3">
+<h3 class="anchored" data-anchor-id="simply-summary">Simply summary:</h3>
+<ul>
+<li><p><strong>Q: How does R find a variable?</strong> &gt; R replies: “First, I look if I have it. If not, I go to my birthplace to find it.”</p></li>
+<li><p><strong>Q: How does SAS find a variable?</strong> &gt; SAS replies: “First, I look if I have it. If not, I go to where I was called from to find it.”</p></li>
+</ul>
+</section>
+</section>
+<section id="function-environments" class="level2">
+<h2 class="anchored" data-anchor-id="function-environments">Function Environments</h2>
+<section id="key-types-of-function-environments" class="level3">
+<h3 class="anchored" data-anchor-id="key-types-of-function-environments">Key Types of Function Environments</h3>
+<ul>
+<li><strong>Enclosing Environment / Closure Environment / Definition Environment</strong>
+<ul>
+<li>Found with: <code>environment(my_function)</code></li>
+</ul></li>
+<li><strong>Execution Environment</strong>
+<ul>
+<li>Found with: <code>environment()</code></li>
+</ul></li>
+<li><strong>Calling Environment</strong>
+<ul>
+<li>Found with: <code>parent.frame()</code></li>
+</ul></li>
+</ul>
+</section>
+<section id="definition-environment-enclosingdefinition-environment" class="level3">
+<h3 class="anchored" data-anchor-id="definition-environment-enclosingdefinition-environment">Definition Environment (Enclosing/Definition Environment)</h3>
+<p>A function in R is not merely a piece of code; it is a closure, which encapsulates the function body and its definition environment.</p>
+<ul>
+<li><strong>What it is</strong>: The environment where the function was created. This environment is permanently bound to the function object.</li>
+<li><strong>How to get it</strong>: <code>environment(my_function)</code></li>
+<li><strong>Purpose</strong>: It is the core of lexical scoping. When a function executes and encounters a free variable (non-parameter, non-local variable), R first looks for it in the function’s definition environment.</li>
+</ul>
+</section>
+<section id="execution-environment" class="level3">
+<h3 class="anchored" data-anchor-id="execution-environment">Execution Environment</h3>
+<ul>
+<li><strong>What it is</strong>: Every time a function is called, R creates a new, temporary environment for that specific call.</li>
+<li><strong>Contents</strong>:
+<ul>
+<li>The function’s formal arguments (parameters) are bound and created in this environment.</li>
+<li>Variables created using <code>&lt;-</code> or <code>=</code> inside the function body (local variables) are also stored in this environment.</li>
+</ul></li>
+<li><strong>Parent Environment</strong>: The parent environment of the execution environment is the function’s definition environment. This is a key connection point for lexical scoping.</li>
+<li><strong>Lifecycle</strong>: The environment is created when the function starts, and it is usually destroyed after the function finishes execution (unless there are other references, such as the definition environment of an inner function).</li>
+<li><strong>How to get it (inside the function)</strong>: <code>environment()</code> or <code>rlang::current_env()</code>.</li>
+<li><strong>Example</strong>: (The Example itself is missing from the image, but the heading is there.)</li>
+</ul>
+</section>
+<section id="calling-environment" class="level3">
+<h3 class="anchored" data-anchor-id="calling-environment">Calling Environment</h3>
+<ul>
+<li><strong>What it is</strong>: The environment where the code that initiated the function call resides when the function is called.</li>
+<li><strong>How to get it (inside the function)</strong>: <code>parent.frame()</code> or <code>rlang::caller_env()</code>.</li>
+<li><strong>Purpose</strong>:
+<ul>
+<li>Primarily used for Non-Standard Evaluation (NSE), where a function might need to know in which context it was called in order to interpret parameters or perform operations within that context.</li>
+<li>For Example, the <code>subset()</code> function needs to find the data frame in its calling environment and interpret the conditional expression within the context of that data frame.</li>
+<li><code>eval(expression, envir = parent.frame())</code> will evaluate an expression in the calling environment.</li>
+</ul></li>
+<li><strong>Example</strong>: (The Example itself is missing from the image, but the heading is there.)</li>
+</ul>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Function Environments Example</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>test_fun_env_01 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Executing environment: "</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">environment</span>())</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Enclosing environment: "</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>()))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Calling environment: "</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">parent.frame</span>())</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">test_fun_env_01</span>()</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>test_fun_env_01 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"[test_fun_env_01] Executing in "</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">environment</span>())</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"[test_fun_env_01] Enclosed by "</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>()))</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"[test_fun_env_01] Calling from "</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">parent.frame</span>())</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    test_fun_env_02 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_02] Executing in "</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">environment</span>())</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_02] Enclosed by "</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>()))</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_02] Calling from "</span>)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">parent.frame</span>())</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    test_fun_env_03 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_03] Executing in "</span>)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">environment</span>())</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_03] Enclosed by "</span>)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">parent.env</span>(<span class="fu">environment</span>()))</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="fu">cat</span>(<span class="st">"[test_fun_env_03] Calling from "</span>)</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="fu">parent.frame</span>())</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">test_fun_env_02</span>()</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_fun_env_03</span>()</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a><span class="fu">test_fun_env_01</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="lexical-scoping-in-action-standard-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="lexical-scoping-in-action-standard-evaluation">Lexical Scoping in Action (Standard Evaluation)</h2>
+<p>A variable’s scope is determined by its location in the source code (i.e., where it was defined), rather than by how or where the function is called (dynamic scoping). A function “remembers” the environment in which it was defined. Regardless of where the function is called, its path for looking up free variables always starts from its defining environment and proceeds upward.</p>
+<section id="core-rules" class="level3">
+<h3 class="anchored" data-anchor-id="core-rules">Core Rules</h3>
+<ul>
+<li><strong>Local Lookup</strong>: When a function needs the value of a variable, it first looks within its own execution environment (local variables and parameters).</li>
+<li><strong>Upward Lookup</strong>: If the variable isn’t found in its execution environment, it then looks in the environment where the function was defined.</li>
+<li><strong>Continue Upward</strong>: If still not found in the defining environment, it continues to look in the defining environment’s parent environment, and so on, following the chain of environments all the way up to the global environment, and finally to the empty environment.</li>
+</ul>
+</section>
+<section id="for-top-level-interactive-commands-the-search-path" class="level3">
+<h3 class="anchored" data-anchor-id="for-top-level-interactive-commands-the-search-path">For Top-Level Interactive Commands (The <code>search()</code> path)</h3>
+<p>When you type a command directly into the R console, you are operating in the Global Environment (<code>.GlobalEnv</code>). The lookup process follows the search path.</p>
+<ul>
+<li>First, look in the current environment (<code>.GlobalEnv</code>). This is your main workspace where objects you create are stored.</li>
+<li>If not found, then look sequentially along the search path. You can view this path at any time by running <code>search()</code>. A typical path includes:
+<ul>
+<li><strong><code>.GlobalEnv</code></strong>: Your workspace.</li>
+<li><strong>Attached packages</strong>: Environments for each loaded package (e.g., <code>package:dplyr</code>, <code>package:ggplot2</code>, <code>package:stats</code>). Crucially, they are listed in reverse order of attachment, meaning the most recently loaded package is searched first.</li>
+<li><strong>Autoloads</strong>: A special environment R uses to find and load objects from packages that are not yet fully loaded into memory (lazy loading).</li>
+<li><strong><code>package:base</code></strong>: The essential R environment containing core functions (c, list, sum, etc.) and objects. This is a parent to most other environments.</li>
+<li><strong><code>emptyenv()</code></strong>: The empty environment. It has no parent and contains no objects. It serves as the definitive termination point for the search. If a name is not found by the time the search reaches the empty environment, it does not exist, and an error is thrown.</li>
+</ul></li>
+</ul>
+</section>
+<section id="for-names-referenced-inside-a-function-the-lexical-path" class="level3">
+<h3 class="anchored" data-anchor-id="for-names-referenced-inside-a-function-the-lexical-path">For Names Referenced Inside a Function (The Lexical Path)</h3>
+<ul>
+<li>First, look in the function’s <strong>execution environment</strong>. When a function is called, R creates a new, temporary environment for it. This execution environment stores:
+<ul>
+<li>The values of the function’s parameters.</li>
+<li>Any local variables created within the function body (e.g., using <code>&lt;-</code> or <code>=</code>).</li>
+</ul></li>
+<li>If not found, then look in the function’s <strong>defining (enclosing) environment</strong>.
+<ul>
+<li>This is the most critical rule of lexical scoping. Every function in R has a “birth certificate”—a reference to the environment in which it was created. This is its defining environment. This link is permanent. As the image correctly emphasizes, the search is governed not by <em>how</em> or <em>where</em> the function is called (dynamic scoping) but by <em>where</em> it was <em>defined</em>.</li>
+</ul></li>
+<li>If still not found, then look in the parent environment of the defining environment, and so on.</li>
+<li>The search now proceeds up the “ancestor” chain of the function’s defining environment, moving from parent to parent.</li>
+<li>This chain eventually reaches the global environment and the rest of the search() path (e.g., <code>package:base</code>), finally reaching the empty environment. If the name is not found before the empty environment, R will report: “object ‘…’ not found.”</li>
+</ul>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Lexical Scoping Example</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>test_func_lex_scop_01 <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    x <span class="sc">+</span> y </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>test_func_lex_scop_02 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> <span class="dv">100</span> </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_func_lex_scop_01</span>(<span class="dv">5</span>)     </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_lex_scop_02</span>()</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>test_func_objects_01 <span class="ot">&lt;-</span> <span class="cf">function</span>(){</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> <span class="dv">20</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(<span class="at">p =</span> y){</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(p)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        y <span class="ot">&lt;-</span><span class="dv">200</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>y<span class="ot">&lt;-</span> <span class="dv">2</span> </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>g_01<span class="ot">&lt;-</span> <span class="fu">test_func_objects_01</span>()</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="fu">g_01</span>()</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>test_func_objects_02 <span class="ot">&lt;-</span> <span class="cf">function</span>(){</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> <span class="dv">20</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(<span class="at">p =</span> y){</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        y <span class="ot">&lt;-</span><span class="dv">200</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(p)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>y<span class="ot">&lt;-</span> <span class="dv">2</span> </span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>g_02<span class="ot">&lt;-</span> <span class="fu">test_func_objects_02</span>()</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="fu">g_02</span>()</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="fu">g_02</span>(<span class="at">p =</span> y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="masking-the-first-find-wins" class="level3">
+<h3 class="anchored" data-anchor-id="masking-the-first-find-wins">“Masking”: The First Find Wins</h3>
+<ul>
+<li>The environment chain is a one-way street. Once R finds a name, the search stops immediately.</li>
+<li><strong>Principle</strong>: An object in an inner (or earlier-searched) environment will “mask” (or hide) an object with the same name in an outer (or later-searched) environment.</li>
+<li><strong>Example</strong>: <code>dplyr::filter</code> vs.&nbsp;<code>stats::filter</code>:
+<ul>
+<li>The <code>stats</code> package is loaded by default. It contains a function named <code>filter</code>.</li>
+<li>If you then load <code>dplyr</code> with <code>library(dplyr)</code>, its environment is placed <em>earlier</em> on the search path than the <code>stats</code> environment.</li>
+<li>When you call <code>filter()</code>, R starts down the search path, finds <code>filter</code> in <code>package:dplyr</code> first, and stops. It never reaches the <code>filter</code> function in <code>package:stats</code>.</li>
+</ul></li>
+<li>To bypass masking, you can use the <code>::</code> operator to be explicit (e.g., <code>stats::filter()</code> or <code>dplyr::filter()</code>).</li>
+</ul>
+</section>
+<section id="the-inherits-parameter-fine-grained-control" class="level3">
+<h3 class="anchored" data-anchor-id="the-inherits-parameter-fine-grained-control">The <code>inherits</code> Parameter: Fine-Grained Control</h3>
+<p>R provides tools like <code>exists()</code> and <code>get()</code> that allow you to control the scope of the search using the <code>inherits</code> parameter.</p>
+<ul>
+<li><code>exists("x", inherits = TRUE)</code> (the default): Checks if <code>x</code> exists in the current environment or any of its ancestor environments. This mimics the full lexical lookup behavior.</li>
+<li><code>exists("x", inherits = FALSE)</code>: Checks for <code>x</code> <strong>only</strong> in the current environment. It will return <code>FALSE</code> even if <code>x</code> exists in a parent environment.</li>
+<li><code>get("x", inherits = TRUE)</code>: Retrieves the value of <code>x</code>, searching upwards through the environment chain.</li>
+</ul>
+</section>
+<section id="the-super-assignment-operator--" class="level3">
+<h3 class="anchored" data-anchor-id="the-super-assignment-operator--">The Super Assignment Operator: <code>&lt;&lt;-</code></h3>
+<p>While the standard assignment <code>&lt;-</code> creates or modifies a variable in the <strong>current</strong> environment, the super assignment operator <code>&lt;&lt;-</code> works differently. It modifies a variable in a <strong>parent</strong> environment. It traverses up the environment chain until it finds the first existing variable with that name and modifies it. <strong>If it reaches the global environment without finding the variable, it will create it there.</strong> This operator breaks the self-contained nature of functions and should be used with extreme caution, as it can make code very difficult to debug.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>The Super Assignment Operator &lt;&lt;- Example</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>a <span class="ot">&lt;-</span><span class="dv">10</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>test_func_01 <span class="ot">&lt;-</span> <span class="cf">function</span>(){</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    a<span class="ot">&lt;&lt;-</span><span class="dv">20</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    y<span class="ot">&lt;&lt;-</span><span class="dv">20</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(a)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_01</span>()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(y)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(a)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> <span class="fu">new.env</span>()</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>env<span class="sc">$</span>a <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="fu">environment</span>(test_func_01)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">environment</span>(test_func_01) <span class="ot">&lt;-</span> env</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_01</span>()</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(env<span class="sc">$</span>a)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="dynamic-scoping-and-non-standard-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="dynamic-scoping-and-non-standard-evaluation">Dynamic Scoping (and Non-Standard Evaluation)</h2>
+<p>Dynamic scoping is the direct opposite of lexical scoping. Its core principle is that the value of a free variable inside a function is resolved by searching in the environment where the function was <strong>called</strong> (the calling environment), not where it was defined.</p>
+<p>In other words, a function no longer “remembers its birthplace” (its defining environment). Instead, it “adapts to its surroundings.” The search path for variables follows <strong>the call stack</strong>—the sequence of function calls that led to the <strong>current point of execution</strong>—rather than the static chain of parent environments.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Dynamic Search (Non-Standard Evaluation) Example</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>x[<span class="dv">3</span><span class="sc">:</span>(<span class="fu">length</span>(x) <span class="sc">-</span><span class="dv">5</span>)]</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_01 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, range) {</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    range <span class="ot">&lt;-</span> <span class="fu">substitute</span>(range)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    selector <span class="ot">&lt;-</span> <span class="fu">eval</span>(range, <span class="fu">list</span>(<span class="at">. =</span><span class="fu">length</span>(x)))</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    x[selector]</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_dy_sear_01</span>(x, <span class="dv">3</span><span class="sc">:</span>(. <span class="sc">-</span><span class="dv">5</span>))</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_02 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, n) {</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_func_dy_sear_01</span>(x, (n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(. <span class="sc">-</span>n))</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_dy_sear_02</span>(x, <span class="dv">3</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_03 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, range) {</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    range <span class="ot">&lt;-</span> <span class="fu">substitute</span>(range)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    selector <span class="ot">&lt;-</span> <span class="fu">eval</span>(range, <span class="fu">list</span>(<span class="at">. =</span><span class="fu">length</span>(x)), <span class="fu">parent.frame</span>())</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    x[selector]</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_03 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, range, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    range_expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(range)</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    selector <span class="ot">&lt;-</span> <span class="fu">eval</span>(range_expr, <span class="fu">list</span>(<span class="at">. =</span> <span class="fu">length</span>(x)), env)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    x[selector]</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_03 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, range) {</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    range <span class="ot">&lt;-</span> <span class="fu">substitute</span>(range)</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    env <span class="ot">&lt;-</span>  <span class="fu">parent.frame</span>()</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    selector <span class="ot">&lt;-</span> <span class="fu">eval</span>(range, <span class="fu">list</span>(<span class="at">. =</span><span class="fu">length</span>(x)),env)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    x[selector]</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>test_func_dy_sear_04 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, n) {</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_func_dy_sear_03</span>(x, (n<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(. <span class="sc">-</span>n))</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a><span class="fu">test_func_dy_sear_04</span>(x, <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<section id="the-essence-of-nse" class="level3">
+<h3 class="anchored" data-anchor-id="the-essence-of-nse">The Essence of NSE</h3>
+<p>The core idea of dynamic scoping—interpreting code within a special, caller-provided data environment—is the foundation of <strong>Non-Standard Evaluation (NSE)</strong> in R. The essence is about <strong>reconstructing the environmental search chain</strong>.</p>
+</section>
+<section id="comparison-lexical-vs.-dynamic-scoping" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-lexical-vs.-dynamic-scoping">Comparison: Lexical vs.&nbsp;Dynamic Scoping</h3>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<section id="lexical-scoping" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="lexical-scoping">Lexical Scoping</h4>
+<ul>
+<li><strong>Core Rule</strong>: Variable lookup depends on the function’s <strong>defining</strong> environment (its birthplace).</li>
+<li><strong>Behavior</strong>: Predictable, stable, and modular. A function’s behavior is consistent regardless of where it’s called.</li>
+<li><strong>R Implementation</strong>: The <strong>default behavior</strong>. All standard function calls follow this rule.</li>
+<li><strong>Pros</strong>: Code is robust, easy to reason about, and debug.</li>
+<li><strong>Cons</strong>: Can sometimes be verbose (e.g., always having to write <code>data$column</code>).</li>
+<li><strong>Use Cases</strong>: Used for the vast majority of programming tasks.</li>
+</ul>
+</section>
+<section id="dynamic-scoping" class="level4 quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<h4 class="anchored" data-anchor-id="dynamic-scoping">Dynamic Scoping</h4>
+<ul>
+<li><strong>Core Rule</strong>: Variable lookup depends on the function’s <strong>calling</strong> environment (its execution site).</li>
+<li><strong>Behavior</strong>: Flexible and context-dependent. A function’s behavior changes based on where it’s called.</li>
+<li><strong>R Implementation</strong>: <strong>Must be implemented manually</strong>, typically by simulating it with <code>eval()</code>, <code>substitute()</code>, etc.</li>
+<li><strong>Pros</strong>: Enables writing very concise, domain-specific languages (DSLs) for tasks like data manipulation.</li>
+<li><strong>Cons</strong>: Can make code difficult to predict and debug due to its “magical” behavior.</li>
+<li><strong>Use Cases</strong>: Non-Standard Evaluation (NSE) in packages like <code>dplyr</code>, <code>ggplot2</code>, and <code>data.table</code>.</li>
+</ul>
+</section>
+</div>
+</div>
+</section>
+<section id="why-non-standard-evaluation-nse" class="level3">
+<h3 class="anchored" data-anchor-id="why-non-standard-evaluation-nse">Why Non-Standard Evaluation (NSE)?</h3>
+<p>R needs Non-Standard Evaluation (NSE) primarily to create a more <strong>interactive</strong>, <strong>intuitive</strong>, and <strong>less verbose</strong> user experience for data analysis. It allows package developers to create Domain-Specific Languages (DSLs)—mini-languages tailored for a specific task, like data manipulation or plotting.</p>
+<section id="common-uses-of-nse" class="level4">
+<h4 class="anchored" data-anchor-id="common-uses-of-nse">Common Uses of NSE</h4>
+<ul>
+<li><strong>Interactive Data Analysis</strong>: Allows users to directly write column names without quotes, e.g., <code>dplyr::filter(mtcars, cyl == 6)</code>. Here, <code>cyl</code> is not a variable in the calling environment, but a column name that the filter function interprets in the context of <code>mtcars</code>.</li>
+<li><strong>Domain-Specific Languages (DSL)</strong>: Such as <code>ggplot2</code>’s aesthetic mapping <code>aes(x = var1, y = var2)</code>.</li>
+<li><strong>Implementation of (Traditional vs.&nbsp;Tidy Evaluation)</strong>: (The rest of this point is cut off in the image).</li>
+</ul>
+</section>
+<section id="key-benefits-of-nse" class="level4">
+<h4 class="anchored" data-anchor-id="key-benefits-of-nse">Key Benefits of NSE</h4>
+<ol type="1">
+<li><strong>Conciseness and Reduced Typing</strong>
+<ul>
+<li>You no longer need to type <code>mtcars$cyl</code>. The function understands that <code>cyl</code> and <code>mpg</code> refer to columns within the <code>mtcars</code> data frame. This is possible because filter and <code>subset</code> use NSE to create a “data mask,” temporarily placing the columns of the data frame “in scope.”</li>
+</ul></li>
+<li><strong>Enhanced Readability</strong>
+<ul>
+<li>The code now reads almost like an English sentence:
+<ul>
+<li>“Subset <code>mtcars</code> where <code>cyl</code> equals 6 and <code>mpg</code> is greater than 20.”</li>
+<li>“Filter <code>mtcars</code> where <code>cyl</code> equals 6 and <code>mpg</code> is greater than 20.”</li>
+</ul></li>
+<li>This drastically lowers the cognitive barrier, allowing users to focus on the what (the analytical question) rather than the how (the programming syntax).</li>
+</ul></li>
+<li><strong>Creation of Domain-Specific Languages (DSLs)</strong>
+<ul>
+<li>NSE is the engine that powers the DSLs that have made R famous.</li>
+<li><strong><code>dplyr</code>’s Grammar of Data Manipulation</strong>: Verbs like <code>filter</code>, <code>mutate</code>, <code>summarise</code>, <code>group_by</code>, and <code>arrange</code> form a consistent and intuitive language for transforming data.</li>
+<li><strong><code>ggplot2</code>’s Grammar of Graphics</strong>: The <code>aes()</code> function is a prime Example of NSE. You write <code>aes(x = mpg, y = wt)</code> instead of the much more verbose <code>aes(x = my_data$mpg, y = my_data$wt)</code>. It allows you to describe the aesthetic mappings of your plot in an abstract way.</li>
+</ul></li>
+</ol>
+</section>
+</section>
+</section>
+<section id="ewise-r-environment" class="level2">
+<h2 class="anchored" data-anchor-id="ewise-r-environment">eWise-R Environment</h2>
+<ul>
+<li><p><a href="https://docs.sanofi.com/cpv/wiki/spaces/konviw/pages/64994738703?style=digital"><strong>eWise - R Programming</strong></a></p>
+<ul>
+<li><p>To locate the R profile file, you can use:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">file.path</span>(<span class="fu">path.expand</span>(<span class="st">"~"</span>), <span class="st">".Rprofile"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
+<li><p>Key Scripts:</p>
+<ul>
+<li><code>alloc_ana.R</code>: system level, readonly</li>
+<li><code>alloc_cust.R</code>: user level, write</li>
+<li><code>alloc_install.R</code>: batch run to install packages</li>
+</ul></li>
+</ul></li>
+<li><p><strong>Note on a new triplet:</strong></p>
+<p>If a new library without <code>dso.SDTM</code> is needed, reset the <code>repos</code> option, or use <code>alloc_install.R</code>.</p></li>
+</ul>
+</section>
+<section id="homework-and-thinking-points" class="level2">
+<h2 class="anchored" data-anchor-id="homework-and-thinking-points">Homework and Thinking Points</h2>
+<section id="how-do-functions-find-global-objects" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-functions-find-global-objects">How do functions find global objects?</h3>
+<p>The core question is: How does a function find objects in the <code>.GlobalEnv</code> when it’s running? This relates to the concept of the search path, which is part of a function’s lexical scope chain.</p>
+<p><em>(The following code snippet provides context for this question.)</em></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sdd-code-snippet.png" class="img-fluid figure-img"></p>
+<figcaption>Code snippet for homework discussion</figcaption>
+</figure>
+</div>
+</section>
+<section id="re-implementing-with-in-base-r" class="level3">
+<h3 class="anchored" data-anchor-id="re-implementing-with-in-base-r">Re-implementing <code>with()</code> in Base R</h3>
+<ul>
+<li><strong>Task 1</strong>: Write a function that behaves like the <code>with()</code> function in base R.</li>
+<li><strong>Task 2</strong>: Update this function so it can be <strong>called correctly inside another function</strong>, without using any external libraries.</li>
+</ul>
+</section>
+<section id="updating-a-standard-project-function" class="level3">
+<h3 class="anchored" data-anchor-id="updating-a-standard-project-function">Updating a Standard Project Function</h3>
+<ul>
+<li><strong>Scenario</strong>: In a study, if the <strong>standard ERIS R function</strong> does not meet my needs, what is the proper procedure to update this function specifically for my project without affecting others?</li>
+</ul>
+</section>
+<section id="implementing-dynamic-scoping-in-r" class="level3">
+<h3 class="anchored" data-anchor-id="implementing-dynamic-scoping-in-r">Implementing Dynamic Scoping in R</h3>
+<ul>
+<li><strong>Challenge</strong>: How can you implement dynamic scoping for variable lookup in an R function, to mimic the behavior of a SAS macro? The function should search for external <strong>variables along the function call stack</strong>.</li>
+<li><strong>Follow-up</strong>: Are there other ways in R to achieve the same lookup behavior as a SAS macro?</li>
+</ul>
+</section>
+<section id="understanding-tidy-evaluation-errors" class="level3">
+<h3 class="anchored" data-anchor-id="understanding-tidy-evaluation-errors">Understanding Tidy Evaluation Errors</h3>
+<ul>
+<li><strong>Question</strong>: <a href="https://rlang.r-lib.org/reference/topic-data-mask.html">Why does the following code produce an error</a>?</li>
+</ul>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>why error?</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>  my_mean <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var1, var2) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarise</span>(data, <span class="fu">mean</span>(var1 <span class="sc">+</span> var2))</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">my_mean</span>(mtcars, cyl, am)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="learning" class="level3">
+<h3 class="anchored" data-anchor-id="learning">Learning</h3>
+<ul>
+<li>Environment management</li>
+<li>Project management</li>
+<li>R Version management</li>
+<li>Package management</li>
+</ul>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+<script src="r-environment-slides_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

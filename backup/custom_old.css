@@ -1,0 +1,66 @@
+/* custom.css */
+    
+    /* --- 标题页样式 --- */
+    
+    /* 让标题页成为一个 flex 容器，方便垂直对齐 */
+    .reveal .slide-title {
+        display: flex;
+        flex-direction: column; /* 元素垂直排列 */
+            justify-content: center; /* 垂直居中 */
+            height: 100%; /* 占据整个幻灯片高度 */
+            text-align: center; /* 文本水平居中 */
+    }
+
+/* 调整主标题（R-Environment）的样式 */
+    .reveal .title {
+        font-size: 3.5em; /* 稍微放大标题 */
+            font-weight: 700;
+        color: #2c3e50; /* 换一个深沉一点的颜色，如深灰蓝 */
+            margin-top: -50px; /* 向上移动一点，给下面留出更多空间 */
+    }
+
+/* 调整作者的样式 */
+    .reveal .author {
+        font-size: 0.7em; /* 缩小字体 */
+            font-style: normal; /* 去掉斜体，更正式 */
+            opacity: 0.7;
+        margin-top: 50px; /*  !!! 关键：大幅增加与标题的距离，将其向下推 !!! */
+    }
+
+/* 调整日期的样式 */
+    .reveal .date {
+        font-size: 0.5em; /* 比作者字体更小 */
+            font-style: normal; /* 去掉斜体 */
+            opacity: 0.6;
+        margin-top: 20px; /* 与作者保持一定间距 */
+    }
+
+/* --- 正文幻灯片样式 --- */
+    
+    /* 调整正文页标题的样式 */
+    .reveal h2 {
+        color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1; /* 换个更柔和的下划线颜色 */
+        padding-bottom: 10px;
+         font-size: 1.2em;
+    }
+    
+    
+    /* --- 页脚和页码样式 --- */
+.reveal .footer {
+  color: #000000;
+  font-size: 0.6em;
+  font-weight: normal;
+  position: absolute;
+  bottom: 20px; /* 精确控制离底部的距离 */
+  left: 40px; /* 精确控制离左边的距离 */
+}
+
+.reveal .slide-number {
+  color: #000000;
+  font-size: 0.6em;
+  font-weight: normal;
+  position: absolute;
+  bottom: 20px;
+  right: 40px; /* 精确控制离右边的距离 */
+}

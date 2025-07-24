@@ -1,0 +1,73 @@
+---
+title: "R-Environment"
+author: "Lihong Xiao@COE-SDR"
+date: "2025-07-19"
+format: 
+  revealjs:
+    theme: simple
+    mainfont: "Lato"
+    header-font: "Montserrat"
+    slide-number: true 
+    chalkboard: true
+    css: custom.css
+    # logo: your-logo.png 
+    controls: true      
+    mouse-wheel: true   
+    footer: "Sanofi-SDR" 
+---
+
+## Contents
+
+-   How R to Find Objects(Chains of Linked Environments)
+-   Function Environments
+-   Lexical Scoping in Action(Standard Evaluation)
+-   Dynamic Scoping (Non-Standard Evaluation)
+-   eWise-R Environment
+
+------------------------------------------------------------------------
+
+## How R to Find Objects
+
+-   **Environments basic**
+    -   What is an Environment?
+        -   A Container: It holds R objects, like variables (`x <- 10`) and functions (`my_func <- function(...) {...}`). Each object has a unique name within that environment.
+        -   A Pointer to a Parent: Crucially, every environment has a parent environment. This "parent" pointer is what creates the chain. There is only one exception: the `R_EmptyEnv`, which has no parent and acts as the end of every chain.
+
+------------------------------------------------------------------------
+
+## How R to Find Objects
+
+-   **Environments basic**
+    -   Environment
+        -   Name-Object Bindings(Every name must be unique and not ordered.)
+        -   Reference Semantics (Environments are not copied when modified).
+        -   Parent Environment(Hierarchy)
+
+------------------------------------------------------------------------
+
+## How R to Find Objects
+
+-   **How SAS to Find macro variable**
+
+\`\`\`sas
+%let g_var = Global;
+%macro outer_macro;
+%local o_var;
+%let o_var = Outer;
+%macro inner_macro;
+%local i_var;
+%let i_var = Inner;
+%put --- Inside inner_macro ---;
+%put i_var = &i_var;
+%put o_var = &o_var;
+%put g_var = &g_var;
+%mend inner_macro;
+%inner_macro;
+%mend outer_macro;
+%outer_macro;
+
+```         
+```
+
+```         
+```

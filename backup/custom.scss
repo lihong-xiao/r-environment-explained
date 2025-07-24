@@ -1,0 +1,90 @@
+/* custom.scss - v3 (简洁专业版) */
+
+/*-- scss:defaults --*/
+
+// --- 1. 定义核心变量 ---
+// 我们只定义最关键的颜色，其他让主题默认
+$primary:       #005A9C;    // 一个沉稳的蓝色，作为主色调
+$body-color:    #333333;    // 深灰色正文，比纯黑更柔和
+$font-family-sans-serif: 'Segoe UI', -apple-system, 'BlinkMacSystemFont', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+
+/*-- scss:rules --*/
+
+// --- 2. 布局和基础样式 ---
+body {
+  line-height: 1.6; // 适中的行高
+}
+
+// 限制内容宽度，防止在宽屏上文字拉得太开
+.body-content {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+// --- 3. 简化标题区域 ---
+// 不再使用深色背景，回归简洁
+.quarto-title-block.default .quarto-title h1.title {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: $primary; // 标题使用主色调
+  text-align: left; // 标题左对齐
+  border-bottom: none;
+  margin-top: 2rem;
+}
+
+.quarto-title-block.default .quarto-title-meta {
+  text-align: left; // 作者和日期也左对齐
+  padding-left: 0;
+  margin-top: 1rem;
+  margin-bottom: 3rem;
+}
+
+.quarto-title-meta-contents {
+  justify-content: start; // 确保左对齐
+}
+
+// --- 4. 经典章节标题 ---
+h2 {
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #dee2e6; // 一条经典的、浅灰色的下划线
+  padding-bottom: 0.5rem;
+  margin-top: 2.5rem;
+}
+// 移除了标题前的装饰性符号 (::before)
+
+// --- 5. 标准列表样式 ---
+// 移除了自定义列表样式，使用主题默认的经典圆点
+ul li {
+  margin-bottom: 0.5em;
+}
+
+// --- 6. 干净的代码块 ---
+pre {
+  border: 1px solid #e3e3e3; // 浅灰色边框
+  background-color: #f8f9fa; // 非常浅的背景色
+  border-radius: 4px;
+}
+
+
+// --- 7. 美化手动创建的目录页 ---
+#my-toc-page ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+#my-toc-page ul li {
+  font-size: 1.2rem; /* 放大字体 */
+  padding: 0.75rem 0; /* 增加垂直间距 */
+  border-bottom: 1px solid #f0f0f0; /* 添加分隔线 */
+}
+
+#my-toc-page ul li a {
+  text-decoration: none; /* 移除链接下划线 */
+  color: $primary; /* 使用主题色 */
+  font-weight: 500;
+}
+
+#my-toc-page ul li a:hover {
+  text-decoration: underline; /* 鼠标悬浮时显示下划线 */
+}

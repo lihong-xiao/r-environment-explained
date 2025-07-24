@@ -1,0 +1,587 @@
+---
+title: "R Environment Explained"
+author: "Lihong Xiao @ COE-SDR"
+description: "A comprehensive guide to understanding environments in R, from basic concepts to advanced scoping rules."
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+format:
+  html:
+    theme:
+      - cosmo    # 选用一个现代、扁平化的主题
+      - custom.scss # 我们将使用SCSS文件，功能更强
+    toc: true
+    toc-depth: 3
+    toc-float: true
+    code-fold: show
+    code-copy: true
+    smooth-scroll: true # 增加平滑滚动效果
+---
+
+<!-- ::: {#my-toc-page} -->
+
+<!-- ## Contents -->
+
+<!-- -   [How R to Find Objects](#how-r-to-find-objects) -->
+
+<!-- -   [Function Environments](#function-environments) -->
+
+<!-- -   [Lexical Scoping in Action](#lexical-scoping-in-action) -->
+
+<!-- -   [Dynamic Scoping](#dynamic-scoping) -->
+
+<!-- -   [eWise-R Environment](#ewise-r-environment) -->
+
+<!-- -   [Comparison: How SAS Finds Macro Variables](#comparison-how-sas-finds-macro-variables) -->
+
+<!-- ::: -->
+
+<!-- <div> -->
+
+<!-- </div> -->
+
+## How R to Find Objects
+
+### Environments basic
+
+-   **What is an Environment?**
+    -   **A Container**: It holds R objects, like variables (`x <- 10`) and functions (`my_func <- function(...) {...}`). Each object has a unique name within that environment.
+    -   **A Pointer to a Parent**: Crucially, every environment has a parent environment. This "parent" pointer is what creates the chain. There is only one exception: the `R_EmptyEnv`, which has no parent and acts as the end of every chain.
+-   **Key Concepts of an Environment**
+    -   **Name-Object Bindings**: Every name must be unique and not ordered.
+    -   **Reference Semantics**: Environments are not copied when modified.
+    -   **Parent Environment (Hierarchy)**
+
+```{r Environments basic Example, echo = TRUE, eval=FALSE}
+#| label: env-creation-Example
+#| code-summary: "For creating an environment"
+
+env_01 <- new.env()
+
+env_01$var_01 <- 1
+env_01$var_02 <- TRUE
+env_01$var_03 <- "TRUE"
+print(env_01$var_01)
+
+env_02<-env_01
+env_02
+env_02$var_03 <- "FALSE"
+env_01$var_03 
+
+env_01[["var_03"]]
+
+get("var_03", envir = env_01)
+get("var_04", envir = env_01)
+get(c("var_01", "var_02"), envir = env_01)
+
+mget(c("var_04", "var_03","var_05"), envir = env_01,ifnotfound = NA)
+
+
+get0("var_04", envir = env_01, inherits = TRUE, ifnotfound = NULL)
+exists("var_04", envir = env_01, inherits = TRUE)
+
+ls(envir = env_01)
+mget(ls(envir = env_01), envir = env_01)
+
+test_func <- function(){
+    x = 1
+    ls()
+}
+test_func()
+
+parent.env(env_01)
+parent.env(parent.env(env_01))
+
+```
+
+### Comparison: How SAS Finds Macro Variables
+
+``` sas
+
+%let g_var = Global;
+%macro outer_macro;
+  %local o_var;
+  %let o_var = Outer;
+  %macro inner_macro;
+    %local i_var;
+    %let i_var = Inner;
+    %put --- Inside inner_macro ---;
+    %put i_var = &i_var;
+    %put o_var = &o_var;
+    %put g_var = &g_var;
+  %mend inner_macro;
+  %inner_macro;
+%mend outer_macro;
+%outer_macro;
+```
+
+### How SAS Finds Macro Variables (Flowchart)
+
+![Flowchart illustrating the SAS macro variable resolution process.](sas-macro-flowchart.png){fig-align="center" width="80%"}
+
+### Comparison: R Environment vs. SAS Macro Scope
+
+::: {layout-ncol="2"}
+#### R Environment
+
+| Features                     | Details                                 |
+|:-----------------------------|:----------------------------------------|
+| **Basis**                    | Lexical Scoping                         |
+| **Lookup Rules**             | Static (based on function definition)   |
+| **Local Variable Lifecycle** | Tied to the function's environment      |
+| **Core Mechanism**           | 1\. Check self -\> 2. Check parent envs |
+
+#### SAS Macro Scope
+
+| Features | Details |
+|:-----------------------------------|:-----------------------------------|
+| **Basis** | Global/Local Symbol Table |
+| **Lookup Rules** | Dynamic (based on call chain) |
+| **Local Variable Lifecycle** | Bound to a single macro execution |
+| **Core Mechanism** | 1\. Check self -\> 2. Check caller -\> 3. Check global |
+:::
+
+### Thinking about the Process
+
+::: {layout-ncol="2"}
+#### Key Variables
+
+-   `xpt_path` = SDD
+-   `variable_metadata` = `get0("pmetsdtm.variable")`
+
+#### Code Context
+
+![A code snippet showing variable metadata being used in a function.](sdd-code-snippet.png)
+:::
+
+### How R Finds Objects: Chains of Linked Environments
+
+![A flowchart showing the chain of linked environments in R, from the Global Environment down to the Empty Environment.](r-env-chain.png){fig-align="center" width="70%"}
+
+```{r  echo = TRUE, eval=FALSE}
+#| label: Chains of Linked Environments-Example
+#| code-summary: "Chains of Linked Environments"
+
+search()
+parent.env(parent.env(environment(sd)))
+parent.env(parent.env(parent.env(environment(sd))))
+
+```
+
+### R Environment Scope: A Summary
+
+| Features | R Environment Scope Details |
+|:-----------------------------------|:-----------------------------------|
+| **Basis** | Chains of Linked Environments |
+| **Lookup Rules** | **Lexical** (Based on function **definition** environment) |
+| **Local Variable Lifecycle** | Bound to a single **function call** (Execution Environment) |
+| **Core Mechanism** | 1\. Check current (execution) -\> 2. Check enclosing (definition) -\> 3. Follow parent chain to global, to search path, to `EmptyEnv` |
+
+### Scoping Rules: Lexical vs. Dynamic
+
+::: {layout-ncol="2"}
+#### R is Lexical Scoping
+
+-   **Core Idea**: When a variable is defined within a function, the **"birthplace"** of the function takes precedence over the "call location" when determining its scope.
+
+-   **Mechanism**: When a function needs to search for a variable during execution, it first looks in its own execution environment. If not found, it goes to its parent environment (the environment where it was **defined**), and then continues upwards along the chain of parent environments until the global environment and search path are reached.
+
+-   **Advantages/Disadvantages**:
+
+    -   **Advantages**: Results are **stable and predictable**. A function's behavior is independent of different calling contexts, which makes code easier to reason about.
+    -   **Disadvantages**: **not flexible**
+
+#### SAS Macro is Dynamic Scoping
+
+-   **Core Idea**: When a variable is defined within a macro, its **"calling context"** is crucial for determining its scope.
+
+-   **Mechanism**: When a macro needs to search for a variable during execution, it first looks in its own local symbol table. If not found, it goes to the local symbol table of its **calling environment**, then follows the call chain, and finally searches the global symbol table.
+
+-   **Advantages/Disadvantages**:
+
+    -   **Advantages**: This method is very **flexible**; you can change the behavior of the macro by manipulating the calling environment.
+    -   **Disadvantages**: However, it also brings risks; the macro's behavior can have unexpected side effects due to different calling contexts, and the predictability of the code is lower.
+:::
+
+### Simply summary:
+
+-   **Q: How does R find a variable?** \> R replies: "First, I look if I have it. If not, I go to my birthplace to find it."
+
+-   **Q: How does SAS find a variable?** \> SAS replies: "First, I look if I have it. If not, I go to where I was called from to find it."
+
+## Function Environments
+
+### Key Types of Function Environments
+
+-   **Enclosing Environment / Closure Environment / Definition Environment**
+    -   Found with: `environment(my_function)`
+-   **Execution Environment**
+    -   Found with: `environment()`
+-   **Calling Environment**
+    -   Found with: `parent.frame()`
+
+### Definition Environment (Enclosing/Definition Environment)
+
+A function in R is not merely a piece of code; it is a closure, which encapsulates the function body and its definition environment.
+
+-   **What it is**: The environment where the function was created. This environment is permanently bound to the function object.
+-   **How to get it**: `environment(my_function)`
+-   **Purpose**: It is the core of lexical scoping. When a function executes and encounters a free variable (non-parameter, non-local variable), R first looks for it in the function's definition environment.
+
+### Execution Environment
+
+-   **What it is**: Every time a function is called, R creates a new, temporary environment for that specific call.
+-   **Contents**:
+    -   The function's formal arguments (parameters) are bound and created in this environment.
+    -   Variables created using `<-` or `=` inside the function body (local variables) are also stored in this environment.
+-   **Parent Environment**: The parent environment of the execution environment is the function's definition environment. This is a key connection point for lexical scoping.
+-   **Lifecycle**: The environment is created when the function starts, and it is usually destroyed after the function finishes execution (unless there are other references, such as the definition environment of an inner function).
+-   **How to get it (inside the function)**: `environment()` or `rlang::current_env()`.
+-   **Example**: (The Example itself is missing from the image, but the heading is there.)
+
+### Calling Environment
+
+-   **What it is**: The environment where the code that initiated the function call resides when the function is called.
+-   **How to get it (inside the function)**: `parent.frame()` or `rlang::caller_env()`.
+-   **Purpose**:
+    -   Primarily used for Non-Standard Evaluation (NSE), where a function might need to know in which context it was called in order to interpret parameters or perform operations within that context.
+    -   For Example, the `subset()` function needs to find the data frame in its calling environment and interpret the conditional expression within the context of that data frame.
+    -   `eval(expression, envir = parent.frame())` will evaluate an expression in the calling environment.
+-   **Example**: (The Example itself is missing from the image, but the heading is there.)
+
+```{r echo = TRUE, eval=FALSE}
+#| label: Function Environments
+#| code-summary: "Function Environments Example"
+
+test_fun_env_01 <- function() {
+    cat("Executing environment: ")
+    print(environment())
+    cat("Enclosing environment: ")
+    print(parent.env(environment()))
+    cat("Calling environment: ")
+    print(parent.frame())
+}
+test_fun_env_01()
+
+
+test_fun_env_01 <- function() {
+    cat("[test_fun_env_01] Executing in ")
+    print(environment())
+    cat("[test_fun_env_01] Enclosed by ")
+    print(parent.env(environment()))
+    cat("[test_fun_env_01] Calling from ")
+    print(parent.frame())
+    test_fun_env_02 <- function() {
+        cat("[test_fun_env_02] Executing in ")
+        print(environment())
+        cat("[test_fun_env_02] Enclosed by ")
+        print(parent.env(environment()))
+        cat("[test_fun_env_02] Calling from ")
+        print(parent.frame())
+    }
+    test_fun_env_03 <- function() {
+        cat("[test_fun_env_03] Executing in ")
+        print(environment())
+        cat("[test_fun_env_03] Enclosed by ")
+        print(parent.env(environment()))
+        cat("[test_fun_env_03] Calling from ")
+        print(parent.frame())
+        test_fun_env_02()
+    }
+    test_fun_env_03()
+}
+
+test_fun_env_01()
+
+```
+
+## Lexical Scoping in Action (Standard Evaluation)
+
+A variable's scope is determined by its location in the source code (i.e., where it was defined), rather than by how or where the function is called (dynamic scoping). A function "remembers" the environment in which it was defined. Regardless of where the function is called, its path for looking up free variables always starts from its defining environment and proceeds upward.
+
+### Core Rules
+
+-   **Local Lookup**: When a function needs the value of a variable, it first looks within its own execution environment (local variables and parameters).
+-   **Upward Lookup**: If the variable isn't found in its execution environment, it then looks in the environment where the function was defined.
+-   **Continue Upward**: If still not found in the defining environment, it continues to look in the defining environment's parent environment, and so on, following the chain of environments all the way up to the global environment, and finally to the empty environment.
+
+### For Top-Level Interactive Commands (The `search()` path)
+
+When you type a command directly into the R console, you are operating in the Global Environment (`.GlobalEnv`). The lookup process follows the search path.
+
+-   First, look in the current environment (`.GlobalEnv`). This is your main workspace where objects you create are stored.
+-   If not found, then look sequentially along the search path. You can view this path at any time by running `search()`. A typical path includes:
+    -   **`.GlobalEnv`**: Your workspace.
+    -   **Attached packages**: Environments for each loaded package (e.g., `package:dplyr`, `package:ggplot2`, `package:stats`). Crucially, they are listed in reverse order of attachment, meaning the most recently loaded package is searched first.
+    -   **Autoloads**: A special environment R uses to find and load objects from packages that are not yet fully loaded into memory (lazy loading).
+    -   **`package:base`**: The essential R environment containing core functions (c, list, sum, etc.) and objects. This is a parent to most other environments.
+    -   **`emptyenv()`**: The empty environment. It has no parent and contains no objects. It serves as the definitive termination point for the search. If a name is not found by the time the search reaches the empty environment, it does not exist, and an error is thrown.
+
+### For Names Referenced Inside a Function (The Lexical Path)
+
+-   First, look in the function's **execution environment**. When a function is called, R creates a new, temporary environment for it. This execution environment stores:
+    -   The values of the function's parameters.
+    -   Any local variables created within the function body (e.g., using `<-` or `=`).
+-   If not found, then look in the function's **defining (enclosing) environment**.
+    -   This is the most critical rule of lexical scoping. Every function in R has a "birth certificate"—a reference to the environment in which it was created. This is its defining environment. This link is permanent. As the image correctly emphasizes, the search is governed not by *how* or *where* the function is called (dynamic scoping) but by *where* it was *defined*.
+-   If still not found, then look in the parent environment of the defining environment, and so on.
+-   The search now proceeds up the "ancestor" chain of the function's defining environment, moving from parent to parent.
+-   This chain eventually reaches the global environment and the rest of the search() path (e.g., `package:base`), finally reaching the empty environment. If the name is not found before the empty environment, R will report: "object '...' not found."
+
+```{r echo = TRUE, eval=FALSE}
+#| label: Lexical Scoping in Action
+#| code-summary: "Lexical Scoping Example"
+
+
+y <- 10
+test_func_lex_scop_01 <- function(x) {
+    x + y 
+}
+
+test_func_lex_scop_02 <- function() {
+    y <- 100 
+    test_func_lex_scop_01(5)     
+}
+
+test_func_lex_scop_02()
+
+test_func_objects_01 <- function(){
+    y <- 20
+    function(p = y){
+        print(p)
+        y <-200
+    }
+}
+
+y<- 2 
+g_01<- test_func_objects_01()
+g_01()
+
+test_func_objects_02 <- function(){
+    y <- 20
+    function(p = y){
+        y <-200
+        print(p)
+    }
+}
+y<- 2 
+g_02<- test_func_objects_02()
+g_02()
+g_02(p = y)
+
+```
+
+### "Masking": The First Find Wins
+
+-   The environment chain is a one-way street. Once R finds a name, the search stops immediately.
+-   **Principle**: An object in an inner (or earlier-searched) environment will "mask" (or hide) an object with the same name in an outer (or later-searched) environment.
+-   **Example**: `dplyr::filter` vs. `stats::filter`:
+    -   The `stats` package is loaded by default. It contains a function named `filter`.
+    -   If you then load `dplyr` with `library(dplyr)`, its environment is placed *earlier* on the search path than the `stats` environment.
+    -   When you call `filter()`, R starts down the search path, finds `filter` in `package:dplyr` first, and stops. It never reaches the `filter` function in `package:stats`.
+-   To bypass masking, you can use the `::` operator to be explicit (e.g., `stats::filter()` or `dplyr::filter()`).
+
+### The `inherits` Parameter: Fine-Grained Control
+
+R provides tools like `exists()` and `get()` that allow you to control the scope of the search using the `inherits` parameter.
+
+-   `exists("x", inherits = TRUE)` (the default): Checks if `x` exists in the current environment or any of its ancestor environments. This mimics the full lexical lookup behavior.
+-   `exists("x", inherits = FALSE)`: Checks for `x` **only** in the current environment. It will return `FALSE` even if `x` exists in a parent environment.
+-   `get("x", inherits = TRUE)`: Retrieves the value of `x`, searching upwards through the environment chain.
+
+### The Super Assignment Operator: `<<-`
+
+While the standard assignment `<-` creates or modifies a variable in the **current** environment, the super assignment operator `<<-` works differently. It modifies a variable in a **parent** environment. It traverses up the environment chain until it finds the first existing variable with that name and modifies it. **If it reaches the global environment without finding the variable, it will create it there.** This operator breaks the self-contained nature of functions and should be used with extreme caution, as it can make code very difficult to debug.
+
+```{r echo = TRUE, eval=FALSE}
+#| label: The Super Assignment Operator
+#| code-summary: "The Super Assignment Operator <<- Example "
+
+a <-10
+test_func_01 <- function(){
+    a<<-20
+    y<<-20
+}
+print(a)
+test_func_01()
+print(y)
+print(a)
+env <- new.env()
+env$a <- 5
+environment(test_func_01)
+environment(test_func_01) <- env
+test_func_01()
+print(env$a)
+
+```
+
+## Dynamic Scoping (and Non-Standard Evaluation)
+
+Dynamic scoping is the direct opposite of lexical scoping. Its core principle is that the value of a free variable inside a function is resolved by searching in the environment where the function was **called** (the calling environment), not where it was defined.
+
+In other words, a function no longer "remembers its birthplace" (its defining environment). Instead, it "adapts to its surroundings." The search path for variables follows **the call stack**—the sequence of function calls that led to the **current point of execution**—rather than the static chain of parent environments.
+
+```{r echo = TRUE, eval=FALSE}
+#| label: Dynamic Search (Non-Standard Evaluation)
+#| code-summary: "Dynamic Search (Non-Standard Evaluation) Example "
+
+
+x <- 1:10
+x[3:(length(x) -5)]
+
+test_func_dy_sear_01 <- function(x, range) {
+    range <- substitute(range)
+    selector <- eval(range, list(. =length(x)))
+    x[selector]
+}
+
+test_func_dy_sear_01(x, 3:(. -5))
+
+test_func_dy_sear_02 <- function(x, n) {
+    test_func_dy_sear_01(x, (n+1):(. -n))
+}
+
+test_func_dy_sear_02(x, 3)
+
+test_func_dy_sear_03 <- function(x, range) {
+    range <- substitute(range)
+    selector <- eval(range, list(. =length(x)), parent.frame())
+    x[selector]
+}
+
+test_func_dy_sear_03 <- function(x, range, env = parent.frame()) {
+    range_expr <- substitute(range)
+    selector <- eval(range_expr, list(. = length(x)), env)
+    x[selector]
+}
+
+test_func_dy_sear_03 <- function(x, range) {
+    range <- substitute(range)
+    env <-  parent.frame()
+    selector <- eval(range, list(. =length(x)),env)
+    x[selector]
+}
+
+test_func_dy_sear_04 <- function(x, n) {
+    test_func_dy_sear_03(x, (n+1):(. -n))
+}
+x <- 1:10
+test_func_dy_sear_04(x, 3)
+
+
+
+```
+
+### The Essence of NSE
+
+The core idea of dynamic scoping—interpreting code within a special, caller-provided data environment—is the foundation of **Non-Standard Evaluation (NSE)** in R. The essence is about **reconstructing the environmental search chain**.
+
+### Comparison: Lexical vs. Dynamic Scoping
+
+::: {layout-ncol="2"}
+#### Lexical Scoping
+
+-   **Core Rule**: Variable lookup depends on the function's **defining** environment (its birthplace).
+-   **Behavior**: Predictable, stable, and modular. A function's behavior is consistent regardless of where it's called.
+-   **R Implementation**: The **default behavior**. All standard function calls follow this rule.
+-   **Pros**: Code is robust, easy to reason about, and debug.
+-   **Cons**: Can sometimes be verbose (e.g., always having to write `data$column`).
+-   **Use Cases**: Used for the vast majority of programming tasks.
+
+#### Dynamic Scoping
+
+-   **Core Rule**: Variable lookup depends on the function's **calling** environment (its execution site).
+-   **Behavior**: Flexible and context-dependent. A function's behavior changes based on where it's called.
+-   **R Implementation**: **Must be implemented manually**, typically by simulating it with `eval()`, `substitute()`, etc.
+-   **Pros**: Enables writing very concise, domain-specific languages (DSLs) for tasks like data manipulation.
+-   **Cons**: Can make code difficult to predict and debug due to its "magical" behavior.
+-   **Use Cases**: Non-Standard Evaluation (NSE) in packages like `dplyr`, `ggplot2`, and `data.table`.
+:::
+
+### Why Non-Standard Evaluation (NSE)?
+
+R needs Non-Standard Evaluation (NSE) primarily to create a more **interactive**, **intuitive**, and **less verbose** user experience for data analysis. It allows package developers to create Domain-Specific Languages (DSLs)—mini-languages tailored for a specific task, like data manipulation or plotting.
+
+#### Common Uses of NSE
+
+-   **Interactive Data Analysis**: Allows users to directly write column names without quotes, e.g., `dplyr::filter(mtcars, cyl == 6)`. Here, `cyl` is not a variable in the calling environment, but a column name that the filter function interprets in the context of `mtcars`.
+-   **Domain-Specific Languages (DSL)**: Such as `ggplot2`'s aesthetic mapping `aes(x = var1, y = var2)`.
+-   **Implementation of (Traditional vs. Tidy Evaluation)**: (The rest of this point is cut off in the image).
+
+#### Key Benefits of NSE
+
+1.  **Conciseness and Reduced Typing**
+    -   You no longer need to type `mtcars$cyl`. The function understands that `cyl` and `mpg` refer to columns within the `mtcars` data frame. This is possible because filter and `subset` use NSE to create a "data mask," temporarily placing the columns of the data frame "in scope."
+2.  **Enhanced Readability**
+    -   The code now reads almost like an English sentence:
+        -   "Subset `mtcars` where `cyl` equals 6 and `mpg` is greater than 20."
+        -   "Filter `mtcars` where `cyl` equals 6 and `mpg` is greater than 20."
+    -   This drastically lowers the cognitive barrier, allowing users to focus on the what (the analytical question) rather than the how (the programming syntax).
+3.  **Creation of Domain-Specific Languages (DSLs)**
+    -   NSE is the engine that powers the DSLs that have made R famous.
+    -   **`dplyr`'s Grammar of Data Manipulation**: Verbs like `filter`, `mutate`, `summarise`, `group_by`, and `arrange` form a consistent and intuitive language for transforming data.
+    -   **`ggplot2`'s Grammar of Graphics**: The `aes()` function is a prime Example of NSE. You write `aes(x = mpg, y = wt)` instead of the much more verbose `aes(x = my_data$mpg, y = my_data$wt)`. It allows you to describe the aesthetic mappings of your plot in an abstract way.
+
+## eWise-R Environment
+
+-   [**eWise - R Programming**](https://docs.sanofi.com/cpv/wiki/spaces/konviw/pages/64994738703?style=digital)
+
+    -   To locate the R profile file, you can use:
+
+        ``` r
+        file.path(path.expand("~"), ".Rprofile")
+        ```
+
+    -   Key Scripts:
+
+        -   `alloc_ana.R`: system level, readonly
+        -   `alloc_cust.R`: user level, write
+        -   `alloc_install.R`: batch run to install packages
+
+-   **Note on a new triplet:**
+
+    If a new library without `dso.SDTM` is needed, reset the `repos` option, or use `alloc_install.R`.
+
+## Homework and Thinking Points
+
+### How do functions find global objects?
+
+The core question is: How does a function find objects in the `.GlobalEnv` when it's running? This relates to the concept of the search path, which is part of a function's lexical scope chain.
+
+*(The following code snippet provides context for this question.)*
+
+![Code snippet for homework discussion](sdd-code-snippet.png){fig-align="center"}
+
+### Re-implementing `with()` in Base R
+
+-   **Task 1**: Write a function that behaves like the `with()` function in base R.
+-   **Task 2**: Update this function so it can be **called correctly inside another function**, without using any external libraries.
+
+### Updating a Standard Project Function
+
+-   **Scenario**: In a study, if the **standard ERIS R function** does not meet my needs, what is the proper procedure to update this function specifically for my project without affecting others?
+
+### Implementing Dynamic Scoping in R
+
+-   **Challenge**: How can you implement dynamic scoping for variable lookup in an R function, to mimic the behavior of a SAS macro? The function should search for external **variables along the function call stack**.
+-   **Follow-up**: Are there other ways in R to achieve the same lookup behavior as a SAS macro?
+
+### Understanding Tidy Evaluation Errors
+
+-   **Question**: [Why does the following code produce an error?](https://rlang.r-lib.org/reference/topic-data-mask.html)
+
+```{r a Example for NSE error, echo = TRUE, eval=FALSE}
+#| label: a Example for NSE error
+#| code-summary: "why error?"
+
+  my_mean <- function(data, var1, var2) {
+    dplyr::summarise(data, mean(var1 + var2))
+  }
+
+  my_mean(mtcars, cyl, am)
+```
+
+### Learning
+
+-   Environment management
+-   Project management
+-   R Version management
+-   Package management

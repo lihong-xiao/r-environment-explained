@@ -5,5 +5,5 @@ website:
   title: "R Environment Explained"
   navbar:
     left:
-      - href: r-environment-slides.qmd  # 把这里换成你主文件的名字
+      - href: r-environment-slides.qmd  
         text: Home

@@ -583,5 +583,5 @@ The core question is: How does a function find objects in the `.GlobalEnv` when 
 
 -   Environment management
 -   Project management
--   R Version management
+-   R Version management and Github Interaction
 -   Package management

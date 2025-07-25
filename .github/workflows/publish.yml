@@ -17,7 +17,13 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         with:
           r-version: latest # 你可以选择一个具体的 R 版本，或者用 'latest'
-          
+       # 新增的步骤在这里！
+      - name: Install R package dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages:
+            any::knitr
+            any::rmarkdown    
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 

@@ -2,5 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-
 /.quarto/
+# 忽略 Quarto 或 R Markdown 渲染的输出文件夹
+_site/
